@@ -31,11 +31,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        print("Before Token : ")
-        print(token)
         token['user_email'] = user.email
-        print("After Token : ")
-        print(token)
+        token['id'] = str(user.pk)
         return token
 
 class MyTokenObtainPairView(TokenObtainPairView):

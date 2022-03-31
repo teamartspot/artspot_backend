@@ -15,7 +15,7 @@ def decode_token(token):
                 verifying_key,
                 algorithms=["RS256"],
         )
-    except (jwt.InvalidTokenError, jwt.ExpiredSignature, jwt.DecodeError) as exc:
+    except (jwt.InvalidTokenError, jwt.ExpiredSignatureError, jwt.DecodeError) as exc:
         raise (str(exc))
     return data 
 

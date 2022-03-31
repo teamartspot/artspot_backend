@@ -62,7 +62,6 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-
 #Custom Model User
 class User(AbstractBaseUser, PermissionsMixin):
     uid = models.UUIDField(
