@@ -32,7 +32,6 @@ class UserManager(BaseUserManager):
             is_admin=is_admin,
             is_staff=is_staff,
         )
-
         if password is not None:
             user.set_password(password)
         else:
@@ -57,7 +56,6 @@ class UserManager(BaseUserManager):
             is_admin=True,
             is_staff=True,
         )
-
         user.is_superuser = True
         user.save(using=self._db)
         return user

@@ -135,7 +135,8 @@ class ChangePasswordApi(generics.UpdateAPIView):
             user.set_password(change_password_serializer.data.get("new_password"))
             user.save()
             return Response('success', status=status.HTTP_200_OK)
-            
+
         return Response(change_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
                     
+class ResetPasswordApi()
