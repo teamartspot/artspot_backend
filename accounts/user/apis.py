@@ -8,14 +8,19 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.validators import validate_email 
 from django.contrib.sites.shortcuts import get_current_site
-from .selectors import get_users
+from .selectors import (
+    get_users, 
+    get_user_from_email,
+)
 from .services import create_user
-from . services import send_account_activation_email
+from . services import (
+    send_account_activation_email,
+    send_reset_password_email
+)
 from .models import User
 from django.contrib.auth.hashers import make_password
 from rest_framework.permissions import AllowAny
 from authentication.services import decode_token
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 
 # User List API
@@ -61,13 +66,8 @@ class UserCreateApi(APIView):
         user = create_user(**serializer.validated_data)   
 
         #Send Activation Email
-        user_email = user.email
-        user_first_name = user.first_name
-        token = RefreshToken.for_user(user).access_token
         current_site = get_current_site(request)
-        relative_link = '/users/verify/'
-        verification_link = 'http://' + str(current_site) + relative_link + "?token=" + str(token)
-        send_account_activation_email(verification_link, user_first_name, user_email)
+        send_account_activation_email(user, current_site)
 
         return Response(status=status.HTTP_201_CREATED)
 
@@ -103,8 +103,8 @@ class UserVerifyApi(APIView):
             user.save()
             return Response('Success', status=status.HTTP_201_CREATED)
 
+# API to change user password
 class ChangePasswordApi(generics.UpdateAPIView):
-    permission_classes = (IsAuthenticated,)
     class ChangePasswordSerializer(serializers.Serializer):
         model = User
         old_password = serializers.CharField(required=True)
@@ -115,7 +115,8 @@ class ChangePasswordApi(generics.UpdateAPIView):
             if data['new_password'] != data['confirm_new_password']:
                 raise serializers.ValidationError({"password": "New Password fields didn't match."})
             return data
-    
+
+    permission_classes = (IsAuthenticated,)
     serializer_class = ChangePasswordSerializer
 
     def get_object(self, queryset=User.objects.all()):
@@ -139,4 +140,17 @@ class ChangePasswordApi(generics.UpdateAPIView):
         return Response(change_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
                     
-class ResetPasswordApi()
+class ResetPasswordApi(APIView):
+    permission_classes = (AllowAny,)
+    def post(self, request):
+        email = request.POST.get('email')
+        current_site = get_current_site(request)
+        user = get_user_from_email(email = email)
+        if user is not None:
+            send_reset_password_email(user, current_site)
+            return Response('User does not exist', status=status.HTTP_200_OK)
+
+        return Response('User does not exist', status=status.HTTP_400_BAD_REQUEST)
+
+class ResetPasswordConfirmApi():
+    pass

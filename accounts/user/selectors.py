@@ -8,3 +8,7 @@ def get_users(*, filters=None) -> QuerySet[User]:
     filters = filters or {}
     qs = User.objects.all()
     return qs
+
+def get_user_from_email(*, email = None) -> User:
+    user = User.objects.all(email__exact = email)
+    return user

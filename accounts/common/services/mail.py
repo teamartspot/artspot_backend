@@ -16,4 +16,3 @@ class MyMail:
             print('There was an error sending an email.'+ e)
         except:                             # It will catch All other possible errors.
             print("Mail Sending Failed!")
-        
