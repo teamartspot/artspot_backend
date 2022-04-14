@@ -79,6 +79,7 @@ class UserCreateApi(generics.CreateAPIView):
 class UserUpdateApi(APIView):
     pass
 
+# User Get API
 class UserGetApi(generics.RetrieveAPIView):
     class UserDetailSerializer(serializers.Serializer):
         model = User
@@ -108,7 +109,7 @@ class UserVerifyApi(APIView):
             return Response('Success', status=status.HTTP_201_CREATED)
         return Response('Error', status=status.HTTP_400_BAD_REQUEST)
 
-# API to change user password
+# Change Password API
 class ChangePasswordApi(generics.UpdateAPIView):
     class ChangePasswordSerializer(serializers.Serializer):
         model = User
@@ -143,7 +144,8 @@ class ChangePasswordApi(generics.UpdateAPIView):
             return Response('success', status=status.HTTP_200_OK)
 
         return Response(change_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                    
+
+# Reset Password Request API              
 class ResetPasswordRequestApi(APIView):
     permission_classes = (AllowAny, )
     def post(self, request, *args, **kwargs):
@@ -167,6 +169,7 @@ class ResetPasswordRequestApi(APIView):
         except:
             return Response('Error while resetting password', status=status.HTTP_400_BAD_REQUEST)
 
+# Reset Password Verify OTP API  
 class ResetPasswordVerifyOTPApi(APIView):
     permission_classes = (IsAuthenticated, )
     def post(self, request, *args, **kwargs):
@@ -184,7 +187,7 @@ class ResetPasswordVerifyOTPApi(APIView):
         except:
             return Response('Error while verifying OTP reset password', status=status.HTTP_400_BAD_REQUEST)
 
-
+# Reset Password API  - Update New Password
 class ResetPasswordApi(generics.UpdateAPIView):
     class ResetPasswordSerializer(serializers.Serializer):
         model = User
@@ -214,6 +217,5 @@ class ResetPasswordApi(generics.UpdateAPIView):
                     user.save()
                     return Response('success', status=status.HTTP_200_OK)
             return Response(reset_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
         except:
             return Response("Invalid Request", status=status.HTTP_400_BAD_REQUEST)
