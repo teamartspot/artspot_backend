@@ -208,11 +208,12 @@ class ResetPasswordApi(generics.UpdateAPIView):
                 print(email)
                 user = get_user_from_email(email=email)
                 if user is not None:
-                    # set_password also hashes the password that the user will get
                     user.set_password(reset_password_serializer.data.get("new_password"))
+                    # After the password is set reset the OTP so that it cannot be used again
+                    user.otp = "default"
                     user.save()
                     return Response('success', status=status.HTTP_200_OK)
             return Response(reset_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+
         except:
             return Response("Invalid Request", status=status.HTTP_400_BAD_REQUEST)
