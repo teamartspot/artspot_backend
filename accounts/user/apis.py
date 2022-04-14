@@ -1,3 +1,4 @@
+
 from cgitb import lookup
 import jwt
 import json
@@ -15,36 +16,39 @@ from .selectors import (
 from .services import create_user
 from . services import (
     send_account_activation_email,
-    send_reset_password_email
+    send_reset_password_otp_email,
+    save_otp_for_user
 )
 from .models import User
 from django.contrib.auth.hashers import make_password
 from rest_framework.permissions import AllowAny
 from authentication.services import decode_token
 from rest_framework.permissions import IsAuthenticated
+from .permissions import AllowUnauthorizedUsers
+from common.services import codes
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # User List API
 class UserListApi(APIView):
-    class OutputSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = User
-            fields = (
-                'first_name',
-                'last_name',
-                'email'
-            )
+    permission_classes = (IsAuthenticated, )
+    class OutputSerializer(serializers.Serializer):
+        email = serializers.EmailField()
+        last_name = serializers.CharField()
+        first_name = serializers.CharField()
+
 
     def get(self, request):
         # Make sure the filters are valid, if passed
         users = get_users()
-        user_data = self.OutputSerializer(data=users)
+        user_data = self.OutputSerializer(data=users,  many=True)
         user_data.is_valid(raise_exception=True)
-        print(user_data)
-        return Response(str(user_data))
+
+        return Response(user_data.data, status=status.HTTP_200_OK)
 
 # User Create API
-class UserCreateApi(APIView):
-    permission_classes = (AllowAny,)
+class UserCreateApi(generics.CreateAPIView):
+    permission_classes = (AllowAny, )
+
     class RegistrationSerializer(serializers.Serializer):
         first_name = serializers.CharField(required=True)
         last_name = serializers.CharField(required=True)
@@ -58,6 +62,7 @@ class UserCreateApi(APIView):
             return data
 
     def post(self, request):
+        #self.check_object_permissions(self, self.request)
         serializer = self.RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
@@ -75,7 +80,6 @@ class UserUpdateApi(APIView):
     pass
 
 class UserGetApi(generics.RetrieveAPIView):
-    permission_classes = [IsAuthenticated, ]
     class UserDetailSerializer(serializers.Serializer):
         model = User
         email = serializers.EmailField()
@@ -92,7 +96,7 @@ class UserGetApi(generics.RetrieveAPIView):
 
 # Verify User API
 class UserVerifyApi(APIView): 
-    permission_classes = [AllowAny, ]
+    permission_classes = (AllowAny, )
 
     def get(self, request):
         token = request.GET.get('token')
@@ -102,6 +106,7 @@ class UserVerifyApi(APIView):
             user.is_verified = True
             user.save()
             return Response('Success', status=status.HTTP_201_CREATED)
+        return Response('Error', status=status.HTTP_400_BAD_REQUEST)
 
 # API to change user password
 class ChangePasswordApi(generics.UpdateAPIView):
@@ -138,19 +143,76 @@ class ChangePasswordApi(generics.UpdateAPIView):
             return Response('success', status=status.HTTP_200_OK)
 
         return Response(change_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
                     
-class ResetPasswordApi(APIView):
-    permission_classes = (AllowAny,)
-    def post(self, request):
-        email = request.POST.get('email')
-        current_site = get_current_site(request)
-        user = get_user_from_email(email = email)
-        if user is not None:
-            send_reset_password_email(user, current_site)
-            return Response('User does not exist', status=status.HTTP_200_OK)
+class ResetPasswordRequestApi(APIView):
+    permission_classes = (AllowAny, )
+    def post(self, request, *args, **kwargs):
+        try:
+            email = request.POST.get('email')
+            user = get_user_from_email(email = email)
+       
+            if user is not None:
+                token = RefreshToken.for_user(user)
+                otp = codes.generate_otp()
+                save_otp_for_user(user, otp)
+                send_reset_password_otp_email(user, otp)
+                data = {
+                    'refresh': str(token),
+                    'access': str(token.access_token)
+                }
+                    
+                return Response(data, status=status.HTTP_200_OK)
+            return Response('User does not exist', status=status.HTTP_400_BAD_REQUEST) 
 
-        return Response('User does not exist', status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response('Error while resetting password', status=status.HTTP_400_BAD_REQUEST)
 
-class ResetPasswordConfirmApi():
-    pass
+class ResetPasswordVerifyOTPApi(APIView):
+    permission_classes = (IsAuthenticated, )
+    def post(self, request, *args, **kwargs):
+        try:
+            otp = request.POST.get('otp')
+            email = request.POST.get('email')
+            if otp is not None and email is not None:
+               user = get_user_from_email(email=email)
+               # Check if OTP matches to the user OTP
+               if user is not None:
+                    if user.otp == otp:
+                        return Response("success", status=status.HTTP_200_OK)
+                    else:
+                        return Response("Invalid OTP", status=status.HTTP_400_BAD_REQUEST)      
+        except:
+            return Response('Error while verifying OTP reset password', status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResetPasswordApi(generics.UpdateAPIView):
+    class ResetPasswordSerializer(serializers.Serializer):
+        model = User
+        email = serializers.EmailField(required=True)
+        new_password = serializers.CharField(required=True)
+        confirm_new_password = serializers.CharField(required=True)
+
+        def validate(self, data):
+            if data['new_password'] != data['confirm_new_password']:
+                raise serializers.ValidationError({"password": "New Password fields didn't match."})
+            return data
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            reset_password_serializer = self.get_serializer(data=request.data)
+            if reset_password_serializer.is_valid():
+                email = reset_password_serializer.data.get("email")
+                print(email)
+                user = get_user_from_email(email=email)
+                if user is not None:
+                    # set_password also hashes the password that the user will get
+                    user.set_password(reset_password_serializer.data.get("new_password"))
+                    user.save()
+                    return Response('success', status=status.HTTP_200_OK)
+            return Response(reset_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except:
+            return Response("Invalid Request", status=status.HTTP_400_BAD_REQUEST)

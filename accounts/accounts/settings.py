@@ -135,9 +135,6 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
-    #'JWT_PUBLIC_KEY': open(JWT_PUBLIC_KEY_PATH).read(),
-    #'JWT_PRIVATE_KEY': open(JWT_PRIVATE_KEY_PATH).read(),
-    #'JWT_ALGORITHM': 'RS256',
 }
 
 # Internationalization
@@ -162,6 +159,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+DEFAULT_FROM_EMAIL = 'teamartspot@gmail.com'
+SERVER_EMAIL = 'teamartspot@gmail.com'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587

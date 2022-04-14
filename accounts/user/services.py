@@ -4,6 +4,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
 from common.services.mail import MyMail
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.mail import send_mail
 
 #Create User
 def create_user(
@@ -51,14 +52,14 @@ def send_account_activation_email(user, current_site) :
     print(verification_link)
     send_email(subject, body, email_address)
 
-# Send reset password email
+# Send reset password email - could be used for web interface
 def send_reset_password_email(user, current_site):
-
+    print(user)
     email_address = user.email
     user_first_name = user.first_name
     current_site = current_site
     token = RefreshToken.for_user(user).access_token
-    relative_link = 'reset_password/confirm/'
+    relative_link = '/reset_password/confirm/'
     reset_password_link = 'https://' + str(current_site) + relative_link + "?token=" + str(token)
     subject = 'Reset your password'
     body = render_to_string('user_reset_password_email.html',{
@@ -68,3 +69,20 @@ def send_reset_password_email(user, current_site):
    
     print(reset_password_link)
     send_email(subject, body, email_address)
+
+def send_reset_password_otp_email(user, otp):
+    print(user)
+    email_address = user.email
+    user_first_name = user.first_name
+   
+    subject = 'Reset your password'
+    body = render_to_string('user_reset_password_email.html',{
+        'user_name': user_first_name,
+        'otp': otp,
+    })
+
+    send_email(subject, body, email_address)
+
+def save_otp_for_user(user, otp):
+    user.otp = otp
+    user.save(update_fields=['otp'])
