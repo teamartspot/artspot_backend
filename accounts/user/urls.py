@@ -11,8 +11,10 @@ from .apis import (
     ResetPasswordApi,
 )
 
+app_name = 'users'
+
 user_patterns = [
-    path('', UserListApi.as_view(), name='users'),
+    path('', UserListApi.as_view(), name='list'),
     path('<str:uid>/', UserGetApi.as_view(), name='user'),
     path('register', UserCreateApi.as_view(), name='register'),
     path('<int:user_id>/update/', UserUpdateApi.as_view(), name='update'),

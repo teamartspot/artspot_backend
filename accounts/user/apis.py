@@ -62,19 +62,21 @@ class UserCreateApi(generics.CreateAPIView):
             return data
 
     def post(self, request):
-        #self.check_object_permissions(self, self.request)
-        serializer = self.RegistrationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
+        try:
+            serializer = self.RegistrationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
         
-        #Create User
-        user = create_user(**serializer.validated_data)   
+            #Create User
+            user = create_user(**serializer.validated_data)   
 
-        #Send Activation Email
-        current_site = get_current_site(request)
-        send_account_activation_email(user, current_site)
+            #Send Activation Email
+            current_site = get_current_site(request)
+            send_account_activation_email(user, current_site)
+            return Response(status=status.HTTP_201_CREATED)
 
-        return Response(status=status.HTTP_201_CREATED)
+        except:
+             return Response('Error while resetting password', status=status.HTTP_400_BAD_REQUEST)
 
 class UserUpdateApi(APIView):
     pass
@@ -145,7 +147,7 @@ class ChangePasswordApi(generics.UpdateAPIView):
 
         return Response(change_password_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Reset Password Request API              
+# Reset Password Request OTP Api              
 class ResetPasswordRequestApi(APIView):
     permission_classes = (AllowAny, )
     def post(self, request, *args, **kwargs):

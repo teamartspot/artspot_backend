@@ -12,7 +12,7 @@ from django.db import models
 
 #Custom Model UserManager
 class UserManager(BaseUserManager):
-    def user_create(self, first_name, last_name, email, password, is_customer=True, is_seller=False, is_verified=False, is_active=True, is_admin=False, is_staff=False):
+    def user_create(self, first_name, last_name, email, password, is_customer=True, is_seller=False, is_verified=False, is_active=True, is_admin=False, is_staff=False, otp="default"):
     # create user here
         if not first_name:
             raise ValueError('Users must have a first name')
@@ -31,6 +31,7 @@ class UserManager(BaseUserManager):
             is_active=is_active,
             is_admin=is_admin,
             is_staff=is_staff,
+            otp=otp
         )
         if password is not None:
             user.set_password(password)
@@ -55,7 +56,6 @@ class UserManager(BaseUserManager):
             is_active=True,
             is_admin=True,
             is_staff=True,
-            otp = None,
         )
         user.is_superuser = True
         user.save(using=self._db)
@@ -79,7 +79,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
-    otp = models.CharField(max_length=10)
+    otp = models.CharField(max_length=10, default="default")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ['first_name','last_name']
