@@ -24,8 +24,6 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.permissions import AllowAny
 from authentication.services import decode_token
 from rest_framework.permissions import IsAuthenticated
-from .permissions import AllowUnauthorizedUsers
-from common.services import codes
 from rest_framework_simplejwt.tokens import RefreshToken
 
 # User List API
